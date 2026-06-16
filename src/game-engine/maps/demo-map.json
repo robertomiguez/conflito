@@ -1,0 +1,19 @@
+{
+  "territories": [
+    {
+      "id": "north",
+      "name": "North",
+      "neighbors": ["center"]
+    },
+    {
+      "id": "center",
+      "name": "Center",
+      "neighbors": ["north", "south"]
+    },
+    {
+      "id": "south",
+      "name": "South",
+      "neighbors": ["center"]
+    }
+  ]
+}
