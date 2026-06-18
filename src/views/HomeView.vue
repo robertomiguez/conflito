@@ -13,10 +13,9 @@ import { ReinforcementService } from "../game-engine/services";
 
 import { PhaseService } from "../game-engine/services";
 
-import { AttackValidator } from "../game-engine/validators";
-
 import { DiceService } from "../game-engine/services";
 import { AttackService } from "../game-engine/services";
+import { VictoryService } from "../game-engine/services/VictoryService";
 
 const game = ref(createGameState(map, demoPlayers));
 
@@ -58,6 +57,8 @@ function testAttack() {
     console.error(error);
   }
 }
+
+const victory = computed(() => VictoryService.evaluate(game.value));
 </script>
 
 <template>
@@ -94,4 +95,14 @@ function testAttack() {
   <button @click="testDice">Test Dice</button>
 
   <p><button @click="testAttack">Attack North → Center</button></p>
+
+  <p>
+    Game Over:
+    {{ victory.gameOver }}
+  </p>
+
+  <p>
+    Winner:
+    {{ victory.winnerId }}
+  </p>
 </template>
