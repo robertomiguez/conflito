@@ -16,6 +16,7 @@ import { PhaseService } from "../game-engine/services";
 import { AttackValidator } from "../game-engine/validators";
 
 import { DiceService } from "../game-engine/services";
+import { AttackService } from "../game-engine/services";
 
 const game = ref(createGameState(map, demoPlayers));
 
@@ -35,21 +36,27 @@ function nextPhase() {
   game.value = PhaseService.next(game.value);
 }
 
-function testAttack() {
-  const result = AttackValidator.validate(
-    game.value,
-    "player-1",
-    "north",
-    "center",
-  );
-
-  console.log(result);
-}
-
 function testDice() {
   const result = DiceService.resolveBattle(3, 2);
 
   console.log(result);
+}
+
+function testAttack() {
+  try {
+    const result = AttackService.execute(
+      game.value,
+      "player-1",
+      "north",
+      "center",
+    );
+
+    game.value = result.game;
+
+    console.log(result);
+  } catch (error) {
+    console.error(error);
+  }
 }
 </script>
 
@@ -84,7 +91,7 @@ function testDice() {
 
   <button @click="nextPhase">Next Phase</button>
 
-  <button @click="testAttack">Test Attack</button>
-
   <button @click="testDice">Test Dice</button>
+
+  <p><button @click="testAttack">Attack North → Center</button></p>
 </template>
