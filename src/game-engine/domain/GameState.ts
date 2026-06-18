@@ -1,14 +1,17 @@
-import type { Player } from "./Player"
-import type { Territory } from "./Territory"
+import type { Player } from "./Player";
+import type { Territory } from "./Territory";
+import { TurnPhase } from "../types";
 
 export interface GameState {
-  id: string
+  id: string;
 
-  players: Player[]
+  players: Player[];
 
-  territories: Record<string, Territory>
+  territories: Record<string, Territory>;
 
-  currentPlayerId: string
+  currentPlayerId: string;
 
-  turnNumber: number
+  turnNumber: number;
+
+  phase: TurnPhase;
 }

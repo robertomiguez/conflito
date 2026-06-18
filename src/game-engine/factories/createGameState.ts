@@ -1,15 +1,15 @@
-import type { GameState } from "../domain/GameState"
-import type { Player } from "../domain/Player"
-import type { MapDefinition } from "../types/MapDefinition"
+import type { GameState } from "../domain/GameState";
+import type { Player } from "../domain/Player";
+import type { MapDefinition } from "../types";
+import { TurnPhase } from "../types";
 
 export const createGameState = (
   map: MapDefinition,
-  players: Player[]
+  players: Player[],
 ): GameState => {
-
   const territories = Object.fromEntries(
     map.territories.map((territory, index) => {
-      const owner = players[index % players.length]
+      const owner = players[index % players.length];
 
       return [
         territory.id,
@@ -17,11 +17,11 @@ export const createGameState = (
           id: territory.id,
           ownerId: owner.id,
           troops: 1,
-          neighbors: territory.neighbors
-        }
-      ]
-    })
-  )
+          neighbors: territory.neighbors,
+        },
+      ];
+    }),
+  );
 
   return {
     id: crypto.randomUUID(),
@@ -32,6 +32,8 @@ export const createGameState = (
 
     currentPlayerId: players[0].id,
 
-    turnNumber: 1
-  }
-}
+    turnNumber: 1,
+
+    phase: TurnPhase.Reinforcement,
+  };
+};
