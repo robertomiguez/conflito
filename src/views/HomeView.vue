@@ -11,6 +11,8 @@ import { TurnService } from "../game-engine/services";
 
 import { ReinforcementService } from "../game-engine/services";
 
+import { PhaseService } from "../game-engine/services/PhaseService";
+
 const game = ref(createGameState(map, demoPlayers));
 
 const reinforcements = computed(() =>
@@ -23,6 +25,10 @@ function endTurn() {
 
 function reinforceNorth() {
   game.value = ReinforcementService.reinforce(game.value, "north", 3);
+}
+
+function nextPhase() {
+  game.value = PhaseService.next(game.value);
 }
 </script>
 
@@ -49,4 +55,11 @@ function reinforceNorth() {
     </p>
     <button @click="reinforceNorth">Add Troops To North</button>
   </div>
+
+  <p>
+    Phase:
+    {{ game.phase }}
+  </p>
+
+  <button @click="nextPhase">Next Phase</button>
 </template>
