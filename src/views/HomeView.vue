@@ -11,9 +11,11 @@ import { TurnService } from "../game-engine/services";
 
 import { ReinforcementService } from "../game-engine/services";
 
-import { PhaseService } from "../game-engine/services/PhaseService";
+import { PhaseService } from "../game-engine/services";
 
-import { AttackValidator } from "../game-engine/validators/AttackValidator";
+import { AttackValidator } from "../game-engine/validators";
+
+import { DiceService } from "../game-engine/services";
 
 const game = ref(createGameState(map, demoPlayers));
 
@@ -40,6 +42,12 @@ function testAttack() {
     "north",
     "center",
   );
+
+  console.log(result);
+}
+
+function testDice() {
+  const result = DiceService.resolveBattle(3, 2);
 
   console.log(result);
 }
@@ -77,4 +85,6 @@ function testAttack() {
   <button @click="nextPhase">Next Phase</button>
 
   <button @click="testAttack">Test Attack</button>
+
+  <button @click="testDice">Test Dice</button>
 </template>
