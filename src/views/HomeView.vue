@@ -13,6 +13,8 @@ import { ReinforcementService } from "../game-engine/services";
 
 import { PhaseService } from "../game-engine/services/PhaseService";
 
+import { AttackValidator } from "../game-engine/validators/AttackValidator";
+
 const game = ref(createGameState(map, demoPlayers));
 
 const reinforcements = computed(() =>
@@ -29,6 +31,17 @@ function reinforceNorth() {
 
 function nextPhase() {
   game.value = PhaseService.next(game.value);
+}
+
+function testAttack() {
+  const result = AttackValidator.validate(
+    game.value,
+    "player-1",
+    "north",
+    "center",
+  );
+
+  console.log(result);
 }
 </script>
 
@@ -62,4 +75,6 @@ function nextPhase() {
   </p>
 
   <button @click="nextPhase">Next Phase</button>
+
+  <button @click="testAttack">Test Attack</button>
 </template>
