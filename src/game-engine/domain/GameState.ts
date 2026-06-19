@@ -14,4 +14,12 @@ export interface GameState {
   turnNumber: number;
 
   phase: TurnPhase;
+
+  reinforcementsLeft: number;
+
+  seed: number;
+
+  hasFortified: boolean;
+
+  winnerId?: string | null;
 }

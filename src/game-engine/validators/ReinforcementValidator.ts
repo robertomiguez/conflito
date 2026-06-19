@@ -3,21 +3,20 @@ import { TurnPhase } from "../types/TurnPhase";
 import type { ValidationResult } from "../types/ValidationResult";
 import { GameValidator } from "./GameValidator";
 
-export class AttackValidator {
+export class ReinforcementValidator {
   static validate(
     game: GameState,
     playerId: string,
-    fromTerritoryId: string,
-    toTerritoryId: string,
-    attackerDice: number,
+    territoryId: string,
+    amount: number,
   ): ValidationResult {
     const gameOverCheck = GameValidator.validateNotGameOver(game);
     if (!gameOverCheck.valid) return gameOverCheck;
 
-    if (game.phase !== TurnPhase.Attack) {
+    if (game.phase !== TurnPhase.Reinforcement) {
       return {
         valid: false,
-        reason: "NOT_ATTACK_PHASE",
+        reason: "NOT_REINFORCEMENT_PHASE",
       };
     }
 
@@ -28,55 +27,32 @@ export class AttackValidator {
       };
     }
 
-    const from = game.territories[fromTerritoryId];
-    const to = game.territories[toTerritoryId];
-
-    if (!from || !to) {
+    const territory = game.territories[territoryId];
+    if (!territory) {
       return {
         valid: false,
         reason: "TERRITORY_NOT_FOUND",
       };
     }
 
-    if (from.ownerId !== playerId) {
+    if (territory.ownerId !== playerId) {
       return {
         valid: false,
         reason: "TERRITORY_NOT_OWNED",
       };
     }
 
-    if (to.ownerId === playerId) {
+    if (amount <= 0) {
       return {
         valid: false,
-        reason: "CANNOT_ATTACK_OWN_TERRITORY",
+        reason: "INVALID_AMOUNT",
       };
     }
 
-    if (!from.neighbors.includes(to.id)) {
+    if (amount > game.reinforcementsLeft) {
       return {
         valid: false,
-        reason: "TERRITORIES_ARE_NOT_NEIGHBORS",
-      };
-    }
-
-    if (from.troops < 2) {
-      return {
-        valid: false,
-        reason: "INSUFFICIENT_TROOPS",
-      };
-    }
-
-    if (attackerDice < 1 || attackerDice > 3) {
-      return {
-        valid: false,
-        reason: "INVALID_DICE_COUNT",
-      };
-    }
-
-    if (attackerDice >= from.troops) {
-      return {
-        valid: false,
-        reason: "DICE_COUNT_EXCEEDS_MAX_ALLOWED",
+        reason: "INSUFFICIENT_REINFORCEMENTS",
       };
     }
 

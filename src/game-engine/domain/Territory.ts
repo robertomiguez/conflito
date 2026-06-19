@@ -3,4 +3,5 @@ export interface Territory {
   ownerId: string | null;
   troops: number;
   neighbors: string[];
+  continentId?: string;
 }
