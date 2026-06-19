@@ -2,15 +2,31 @@ import type { GameState } from "../domain/GameState";
 import type { VictoryResult } from "../types/VictoryResult";
 
 export class VictoryService {
+  /**
+   * Evaluates if a player has achieved victory by conquering every territory on the map.
+   */
   static evaluate(game: GameState): VictoryResult {
-    const owners = new Set(
-      Object.values(game.territories).map((t) => t.ownerId),
+    const territories = Object.values(game.territories);
+
+    if (territories.length === 0) {
+      return {
+        gameOver: false,
+        winnerId: null,
+      };
+    }
+
+    const nonNullOwners = new Set(
+      territories
+        .map((t) => t.ownerId)
+        .filter((ownerId): ownerId is string => ownerId !== null),
     );
 
-    if (owners.size === 1) {
+    const hasUnowned = territories.some((t) => t.ownerId === null);
+
+    if (nonNullOwners.size === 1 && !hasUnowned) {
       return {
         gameOver: true,
-        winnerId: [...owners][0],
+        winnerId: [...nonNullOwners][0],
       };
     }
 

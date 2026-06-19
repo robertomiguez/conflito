@@ -2,22 +2,23 @@ import type { GameState } from "../domain/GameState";
 import { TurnPhase } from "../types/TurnPhase";
 import type { ValidationResult } from "../types/ValidationResult";
 import { GameValidator } from "./GameValidator";
+import { TerritoryPathService } from "../services/TerritoryPathService";
 
-export class AttackValidator {
+export class FortifyValidator {
   static validate(
     game: GameState,
     playerId: string,
     fromTerritoryId: string,
     toTerritoryId: string,
-    attackerDice: number,
+    troops: number,
   ): ValidationResult {
     const gameOverCheck = GameValidator.validateNotGameOver(game);
     if (!gameOverCheck.valid) return gameOverCheck;
 
-    if (game.phase !== TurnPhase.Attack) {
+    if (game.phase !== TurnPhase.Fortify) {
       return {
         valid: false,
-        reason: "NOT_ATTACK_PHASE",
+        reason: "NOT_FORTIFY_PHASE",
       };
     }
 
@@ -25,6 +26,13 @@ export class AttackValidator {
       return {
         valid: false,
         reason: "NOT_YOUR_TURN",
+      };
+    }
+
+    if (game.hasFortified) {
+      return {
+        valid: false,
+        reason: "ALREADY_FORTIFIED",
       };
     }
 
@@ -38,45 +46,45 @@ export class AttackValidator {
       };
     }
 
-    if (from.ownerId !== playerId) {
+    if (from.ownerId !== playerId || to.ownerId !== playerId) {
       return {
         valid: false,
-        reason: "TERRITORY_NOT_OWNED",
+        reason: "TERRITORIES_NOT_OWNED",
       };
     }
 
-    if (to.ownerId === playerId) {
+    if (fromTerritoryId === toTerritoryId) {
       return {
         valid: false,
-        reason: "CANNOT_ATTACK_OWN_TERRITORY",
+        reason: "CANNOT_FORTIFY_SAME_TERRITORY",
       };
     }
 
-    if (!from.neighbors.includes(to.id)) {
+    if (troops <= 0) {
       return {
         valid: false,
-        reason: "TERRITORIES_ARE_NOT_NEIGHBORS",
+        reason: "INVALID_TROOPS_COUNT",
       };
     }
 
-    if (from.troops < 2) {
+    if (from.troops - troops < 1) {
       return {
         valid: false,
-        reason: "INSUFFICIENT_TROOPS",
+        reason: "INSUFFICIENT_TROOPS_TO_LEAVE_BEHIND",
       };
     }
 
-    if (attackerDice < 1 || attackerDice > 3) {
+    if (
+      !TerritoryPathService.areConnected(
+        game,
+        playerId,
+        fromTerritoryId,
+        toTerritoryId,
+      )
+    ) {
       return {
         valid: false,
-        reason: "INVALID_DICE_COUNT",
-      };
-    }
-
-    if (attackerDice >= from.troops) {
-      return {
-        valid: false,
-        reason: "DICE_COUNT_EXCEEDS_MAX_ALLOWED",
+        reason: "TERRITORIES_NOT_CONNECTED",
       };
     }
 

@@ -1,13 +1,11 @@
 import type { BattleResult } from "../types/BattleResult";
-
-function rollDice(): number {
-  return Math.floor(Math.random() * 6) + 1;
-}
+import type { RandomService } from "./RandomService";
 
 export class DiceService {
   static resolveBattle(
     attackerDice: number,
     defenderDice: number,
+    randomService: RandomService,
   ): BattleResult {
     if (attackerDice < 1 || attackerDice > 3) {
       throw new Error("Invalid attacker dice");
@@ -18,11 +16,11 @@ export class DiceService {
     }
 
     const attackerRolls = Array.from({ length: attackerDice }, () =>
-      rollDice(),
+      randomService.rollDie(),
     ).sort((a, b) => b - a);
 
     const defenderRolls = Array.from({ length: defenderDice }, () =>
-      rollDice(),
+      randomService.rollDie(),
     ).sort((a, b) => b - a);
 
     let attackerLosses = 0;
