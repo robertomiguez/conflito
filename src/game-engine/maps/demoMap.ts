@@ -1,6 +1,10 @@
 import type { GameMap } from "./GameMap";
 
 export const demoMap: GameMap = {
+  id: "world-grid",
+  name: "World Grid",
+  description: "The classic strategic layout",
+  territoryShape: "card",
   territories: [
     // --- NORTH AMERICA ---
     { id: "canada", x: 100, y: 100, width: 140, height: 75 },

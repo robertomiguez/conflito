@@ -10,12 +10,18 @@ import { FortificationService } from "../game-engine/services/FortificationServi
 import { PhaseService } from "../game-engine/services/PhaseService";
 import { VictoryService } from "../game-engine/services/VictoryService";
 import { TerritoryPathService } from "../game-engine/services/TerritoryPathService";
+import { demoMap } from "../game-engine/maps/demoMap";
+import { frontierMap } from "../game-engine/maps/frontierMap";
+import type { GameMap } from "../game-engine/maps/GameMap";
 import type { BattleResult } from "../game-engine/types/BattleResult";
 
 import PixiMap from "../features/map/PixiMap.vue";
 
 // ─── Game State ────────────────────────────────────────────────────
 const game = ref(createGameState(WORLD_MAP_DEFINITION, demoPlayers));
+const maps: GameMap[] = [demoMap, frontierMap];
+const selectedMapId = ref(demoMap.id ?? "world-grid");
+const selectedMap = computed(() => maps.find((map) => map.id === selectedMapId.value) ?? demoMap);
 
 // ─── UI State ──────────────────────────────────────────────────────
 const selectedTerritoryId = ref<string | null>(null);
@@ -259,6 +265,10 @@ function newGame() {
   troopsToMoveOnCapture.value = 1;
 }
 
+function selectMap(mapId: string) {
+  selectedMapId.value = mapId;
+}
+
 function getPlayerColor(playerId: string | null): string {
   const p = game.value.players.find((pl) => pl.id === playerId);
   return p?.color ?? "#475569";
@@ -297,8 +307,21 @@ function getPlayerName(playerId: string | null): string {
     <main class="game-main">
       <!-- Map Panel -->
       <section class="map-panel">
+        <div class="map-picker" aria-label="Choose a map">
+          <div class="map-picker-copy">
+            <span class="map-picker-kicker">Battlefield</span>
+            <strong>{{ selectedMap.name }}</strong>
+            <span>{{ selectedMap.description }}</span>
+          </div>
+          <div class="map-picker-options">
+            <button v-for="map in maps" :key="map.id" class="map-option" :class="{ active: map.id === selectedMapId }" @click="selectMap(map.id!)">
+              <span class="map-option-mark"></span>{{ map.name }}
+            </button>
+          </div>
+        </div>
         <PixiMap
           :game="game"
+          :map="selectedMap"
           :selected-territory-id="selectedTerritoryId"
           :on-territory-click="handleTerritoryClick"
         />
@@ -648,6 +671,88 @@ function getPlayerName(playerId: string | null): string {
   gap: 12px;
   position: relative;
   overflow: auto;
+}
+
+.map-picker {
+  width: min(1250px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(100deg, rgba(17, 29, 51, 0.96), rgba(23, 38, 61, 0.72));
+}
+
+.map-picker-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.map-picker-copy strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.map-picker-copy > span:last-child {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.map-picker-kicker {
+  color: var(--accent-blue);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.map-picker-options {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.map-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 11px var(--font-sans);
+  cursor: pointer;
+  transition: all 0.18s var(--ease);
+}
+
+.map-option:hover,
+.map-option.active {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: var(--accent-blue-bg);
+  color: var(--accent-blue);
+}
+
+.map-option-mark {
+  width: 7px;
+  height: 7px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.map-option.active .map-option-mark {
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+@media (max-width: 720px) {
+  .map-picker {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .action-toast {
