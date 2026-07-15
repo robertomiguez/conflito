@@ -129,15 +129,16 @@ export class PixiMapRenderer {
       cardGraphics.eventMode = "static";
       cardGraphics.cursor = "pointer";
 
-      // Rounded rectangle for cards
-      cardGraphics
-        .roundRect(
-          territoryDef.x,
-          territoryDef.y,
-          territoryDef.width,
-          territoryDef.height,
-          8,
-        )
+      const shape = this.map.territoryShape === "island"
+        ? cardGraphics.ellipse(
+            territoryDef.x + territoryDef.width / 2,
+            territoryDef.y + territoryDef.height / 2,
+            territoryDef.width / 2,
+            territoryDef.height / 2,
+          )
+        : cardGraphics.roundRect(territoryDef.x, territoryDef.y, territoryDef.width, territoryDef.height, 8);
+
+      shape
         .fill({
           color: TerritoryColorService.getColor(ownerId, this.game.players),
           alpha: isSelected ? 0.95 : 0.85,
