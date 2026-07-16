@@ -213,9 +213,27 @@ function doReinforce(territoryId: string) {
     return;
   }
 
-  game.value = result.game;
+  const reinforcedGame = result.game;
+  if (reinforcedGame.reinforcementsLeft === 0) {
+    const phaseResult = PhaseService.next(
+      reinforcedGame,
+      reinforcedGame.currentPlayerId,
+    );
+
+    if (!phaseResult.success || !phaseResult.game) {
+      actionMessage.value = `⚠ ${phaseResult.error?.replace(/_/g, " ")}`;
+      game.value = reinforcedGame;
+      return;
+    }
+
+    game.value = phaseResult.game;
+    actionMessage.value = `✓ Placed ${amount} troop${amount !== 1 ? "s" : ""}. Attack phase started.`;
+  } else {
+    game.value = reinforcedGame;
+    actionMessage.value = `✓ Placed ${amount} troop${amount !== 1 ? "s" : ""}.`;
+  }
+
   reinforceAmount.value = 1;
-  actionMessage.value = `✓ Placed ${amount} troop${amount !== 1 ? "s" : ""}.`;
 }
 
 function doFortify(toId: string) {
@@ -526,12 +544,9 @@ function getPlayerName(playerId: string | null): string {
         </div>
 
         <!-- Phase Controls -->
-        <div class="card phase-controls">
+        <div v-if="game.phase !== 'reinforcement'" class="card phase-controls">
           <div class="phase-hint text-muted">
-            <template v-if="game.phase === 'reinforcement'">
-              Place all {{ reinforcementsLeft }} remaining troops to advance.
-            </template>
-            <template v-else-if="game.phase === 'attack'">
+            <template v-if="game.phase === 'attack'">
               Attack as much as you want, then proceed.
             </template>
             <template v-else>
