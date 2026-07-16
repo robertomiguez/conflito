@@ -26,24 +26,31 @@ let countryLayer: GeoJSON | null = null;
 let labelLayer: Layer[] = [];
 let territoryBounds: Partial<Record<string, LatLngBounds>> = {};
 
-// Visual country boundaries are grouped into the current 32 logical regions.
+// Visual country boundaries are grouped into the current logical territories.
 const countryToTerritory: Record<string, string> = {
   Canada: "canada", Greenland: "greenland", "United States of America": "usa",
   Mexico: "central-america", Guatemala: "central-america", Belize: "central-america",
-  Cuba: "central-america", Venezuela: "venezuela", Peru: "peru", Brazil: "brazil", Argentina: "argentina",
+  Honduras: "honduras", Nicaragua: "nicaragua",
+  Cuba: "central-america", Colombia: "colombia", Venezuela: "venezuela", Peru: "peru", Bolivia: "bolivia", Brazil: "brazil", Chile: "chile", Argentina: "argentina",
   Iceland: "iceland", "United Kingdom": "great-britain", Ireland: "great-britain",
   France: "western-europe", Spain: "western-europe", Portugal: "western-europe", Germany: "northern-europe",
+  Norway: "norway", Sweden: "sweden", Finland: "finland", Poland: "poland",
   Italy: "southern-europe", Greece: "southern-europe", Ukraine: "ukraine", Egypt: "egypt",
-  Morocco: "north-africa", Algeria: "north-africa", Libya: "north-africa", Nigeria: "congo",
+  Morocco: "north-africa", Algeria: "north-africa", Libya: "north-africa", Mali: "north-africa", Nigeria: "congo", Angola: "angola",
   "South Africa": "south-africa", Madagascar: "madagascar", Kenya: "east-africa", Tanzania: "east-africa",
   Turkey: "middle-east", "Saudi Arabia": "middle-east", Iran: "middle-east", Iraq: "middle-east",
-  Kazakhstan: "ural", Russia: "russia", China: "china", India: "india", Thailand: "siam",
+  Kazakhstan: "ural", Russia: "russia", Mongolia: "mongolia", China: "china", Japan: "japan", India: "india", Thailand: "siam",
   Indonesia: "indonesia", "Papua New Guinea": "new-guinea", Australia: "western-australia",
 };
 
 const territoryLabelPositions: Partial<Record<string, [number, number]>> = {
   usa: [39, -98],
   russia: [61, 100],
+  chile: [-30, -71],
+  norway: [62, 10],
+  sweden: [62, 16],
+  finland: [64, 26],
+  poland: [52, 19],
 };
 
 function territoryColor(id: string | undefined): string {

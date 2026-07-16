@@ -30,6 +30,20 @@ describe("createGameState", () => {
     }
   });
 
+  it("should distribute starting territories evenly between two players", () => {
+    const game = createGameState(WORLD_MAP_DEFINITION, demoPlayers, 42);
+    const territoryCounts = demoPlayers.map(
+      (player) =>
+        Object.values(game.territories).filter(
+          (territory) => territory.ownerId === player.id,
+        ).length,
+    );
+
+    expect(
+      Math.max(...territoryCounts) - Math.min(...territoryCounts),
+    ).toBeLessThanOrEqual(1);
+  });
+
   it("should start in reinforcement phase for the first player", () => {
     const game = createGameState(WORLD_MAP_DEFINITION, demoPlayers);
 
