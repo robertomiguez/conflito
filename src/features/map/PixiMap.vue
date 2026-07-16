@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import L, { type GeoJSON, type Layer, type LeafletMouseEvent, type Map as LeafletMap } from "leaflet";
+import L, { type GeoJSON, type LatLngBounds, type Layer, type LeafletMouseEvent, type Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import type { GameState } from "../../game-engine/domain/GameState";
+import type { GameMap } from "../../game-engine/maps/GameMap";
 import { TerritoryColorService } from "./TerritoryColorService";
 
 interface CountryFeature {
@@ -14,6 +15,7 @@ interface CountryFeature {
 
 const props = defineProps<{
   game: GameState;
+  map: GameMap;
   selectedTerritoryId: string | null;
   onTerritoryClick: (territoryId: string) => void;
 }>();
@@ -22,6 +24,7 @@ const container = ref<HTMLDivElement | null>(null);
 let map: LeafletMap | null = null;
 let countryLayer: GeoJSON | null = null;
 let labelLayer: Layer[] = [];
+let territoryBounds: Partial<Record<string, LatLngBounds>> = {};
 
 // Visual country boundaries are grouped into the current 32 logical regions.
 const countryToTerritory: Record<string, string> = {
@@ -56,37 +59,53 @@ function styleFeature(feature?: CountryFeature) {
   };
 }
 
+function tooltipContent(countryName: string, territoryId: string | undefined): string {
+  const territory = territoryId ? props.game.territories[territoryId] : null;
+  return territory ? `${countryName} · ${territory.troops} troops` : countryName;
+}
+
 function drawLabels() {
   if (!map) return;
   labelLayer.forEach((label) => label.remove());
   labelLayer = [];
-  for (const [name, id] of Object.entries(countryToTerritory)) {
+  for (const [id, bounds] of Object.entries(territoryBounds)) {
     const territory = props.game.territories[id];
-    if (!territory) continue;
-    const marker = L.marker([0, 0], {
+    if (!territory || !bounds) continue;
+    const marker = L.marker(bounds.getCenter(), {
       icon: L.divIcon({ className: "territory-label", html: `<b>${territory.troops}</b>`, iconSize: [26, 26], iconAnchor: [13, 13] }),
       interactive: false,
-    });
-    // Labels are intentionally omitted here; country centroids are provided by GeoJSON layers.
-    void name;
-    void marker;
+    }).addTo(map);
+    labelLayer.push(marker);
   }
+}
+
+function refreshTooltips() {
+  countryLayer?.eachLayer((layer) => {
+    const feature = (layer as Layer & { feature?: CountryFeature }).feature;
+    const countryName = feature?.properties?.name ?? "Unknown country";
+    const id = countryToTerritory[countryName];
+    layer.bindTooltip(tooltipContent(countryName, id), { sticky: true });
+  });
 }
 
 async function loadMap() {
   if (!map || !container.value) return;
   const response = await fetch("/maps/countries.geojson");
   const data = await response.json() as { features: CountryFeature[] };
+  territoryBounds = {};
   countryLayer = L.geoJSON(data as never, {
     style: (feature: unknown) => styleFeature(feature as CountryFeature),
     onEachFeature: (feature: { properties?: unknown }, layer: Layer) => {
       const countryName = (feature.properties as { name?: string })?.name ?? "Unknown country";
       const id = countryToTerritory[countryName];
-      if (id && props.game.territories[id]) {
-        layer.bindTooltip(`${countryName} · ${props.game.territories[id].troops} troops`, { sticky: true });
-      } else {
-        layer.bindTooltip(countryName, { sticky: true });
+      const boundedLayer = layer as Layer & { getBounds?: () => LatLngBounds };
+      const bounds = boundedLayer.getBounds?.();
+      if (id && bounds) {
+        territoryBounds[id] = territoryBounds[id]
+          ? territoryBounds[id]!.extend(bounds)
+          : bounds;
       }
+      layer.bindTooltip(tooltipContent(countryName, id), { sticky: true });
       layer.on({
         mouseover: (event: LeafletMouseEvent) => (event.target as Layer & { setStyle?: (style: object) => void }).setStyle?.({ weight: 2, fillOpacity: id ? 0.9 : 0.3 }),
         mouseout: (event: LeafletMouseEvent) => (event.target as Layer & { setStyle?: (style: object) => void }).setStyle?.(styleFeature(feature as CountryFeature)),
@@ -101,6 +120,8 @@ async function loadMap() {
 function redraw() {
   if (!map) return;
   countryLayer?.setStyle((feature: unknown) => styleFeature(feature as CountryFeature));
+  refreshTooltips();
+  drawLabels();
 }
 
 onMounted(async () => {
@@ -119,6 +140,17 @@ onBeforeUnmount(() => { map?.remove(); map = null; });
 <style>
 .leaflet-map-container { width: min(1250px, 100%); height: 650px; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); background: #dbeafe; }
 .leaflet-container { font-family: "Outfit", system-ui, sans-serif; background: #bfdbfe; }
-.territory-label { display: none; }
+.territory-label {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+  color: #ffffff;
+  display: flex;
+  font-size: 13px;
+  justify-content: center;
+  line-height: 1;
+}
 @media (max-width: 720px) { .leaflet-map-container { height: 480px; } }
 </style>
