@@ -28,7 +28,7 @@ let territoryBounds: Partial<Record<string, LatLngBounds>> = {};
 
 // Visual country boundaries are grouped into the current 32 logical regions.
 const countryToTerritory: Record<string, string> = {
-  Canada: "canada", Greenland: "greenland", "United States of America": "western-us",
+  Canada: "canada", Greenland: "greenland", "United States of America": "usa",
   Mexico: "central-america", Guatemala: "central-america", Belize: "central-america",
   Cuba: "central-america", Venezuela: "venezuela", Peru: "peru", Brazil: "brazil", Argentina: "argentina",
   Iceland: "iceland", "United Kingdom": "great-britain", Ireland: "great-britain",
@@ -37,8 +37,13 @@ const countryToTerritory: Record<string, string> = {
   Morocco: "north-africa", Algeria: "north-africa", Libya: "north-africa", Nigeria: "congo",
   "South Africa": "south-africa", Madagascar: "madagascar", Kenya: "east-africa", Tanzania: "east-africa",
   Turkey: "middle-east", "Saudi Arabia": "middle-east", Iran: "middle-east", Iraq: "middle-east",
-  Kazakhstan: "ural", Russia: "siberia", China: "china", India: "india", Thailand: "siam",
+  Kazakhstan: "ural", Russia: "russia", China: "china", India: "india", Thailand: "siam",
   Indonesia: "indonesia", "Papua New Guinea": "new-guinea", Australia: "western-australia",
+};
+
+const territoryLabelPositions: Partial<Record<string, [number, number]>> = {
+  usa: [39, -98],
+  russia: [61, 100],
 };
 
 function territoryColor(id: string | undefined): string {
@@ -68,13 +73,19 @@ function drawLabels() {
   if (!map) return;
   labelLayer.forEach((label) => label.remove());
   labelLayer = [];
-  for (const [id, bounds] of Object.entries(territoryBounds)) {
-    const territory = props.game.territories[id];
-    if (!territory || !bounds) continue;
-    const marker = L.marker(bounds.getCenter(), {
-      icon: L.divIcon({ className: "territory-label", html: `<b>${territory.troops}</b>`, iconSize: [26, 26], iconAnchor: [13, 13] }),
-      interactive: false,
+  for (const [id, territory] of Object.entries(props.game.territories)) {
+    const position = territoryLabelPositions[id] ?? territoryBounds[id]?.getCenter();
+    if (!territory || !position) continue;
+    const marker = L.marker(position, {
+      icon: L.divIcon({
+        className: `territory-label${id === props.selectedTerritoryId ? " selected" : ""}`,
+        html: `<b>${territory.troops}</b>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      }),
+      interactive: true,
     }).addTo(map);
+    marker.on("click", () => props.onTerritoryClick(id));
     labelLayer.push(marker);
   }
 }
@@ -151,6 +162,10 @@ onBeforeUnmount(() => { map?.remove(); map = null; });
   font-size: 13px;
   justify-content: center;
   line-height: 1;
+}
+.territory-label.selected {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.28), 0 6px 16px rgba(15, 23, 42, 0.28);
 }
 @media (max-width: 720px) { .leaflet-map-container { height: 480px; } }
 </style>

@@ -18,7 +18,7 @@ export const WORLD_MAP_DEFINITION: GameEngineMapDefinition = {
       id: "canada",
       name: "Canada",
       continentId: "north-america",
-      neighbors: ["greenland", "western-us", "eastern-us"],
+      neighbors: ["greenland", "usa"],
     },
     {
       id: "greenland",
@@ -27,22 +27,16 @@ export const WORLD_MAP_DEFINITION: GameEngineMapDefinition = {
       neighbors: ["canada", "iceland"],
     },
     {
-      id: "western-us",
-      name: "Western US",
+      id: "usa",
+      name: "USA",
       continentId: "north-america",
-      neighbors: ["canada", "eastern-us", "central-america"],
-    },
-    {
-      id: "eastern-us",
-      name: "Eastern US",
-      continentId: "north-america",
-      neighbors: ["canada", "western-us", "central-america"],
+      neighbors: ["canada", "central-america", "russia"],
     },
     {
       id: "central-america",
       name: "Central America",
       continentId: "north-america",
-      neighbors: ["western-us", "eastern-us", "venezuela"],
+      neighbors: ["usa", "venezuela"],
     },
 
     // --- SOUTH AMERICA ---
@@ -158,19 +152,19 @@ export const WORLD_MAP_DEFINITION: GameEngineMapDefinition = {
       id: "ural",
       name: "Ural",
       continentId: "asia",
-      neighbors: ["ukraine", "china", "siberia"],
+      neighbors: ["ukraine", "china", "russia"],
     },
     {
-      id: "siberia",
-      name: "Siberia",
+      id: "russia",
+      name: "Russia",
       continentId: "asia",
-      neighbors: ["ural", "china", "kamchatka"],
+      neighbors: ["ural", "china", "usa"],
     },
     {
       id: "china",
       name: "China",
       continentId: "asia",
-      neighbors: ["middle-east", "ural", "siberia", "india", "siam"],
+      neighbors: ["middle-east", "ural", "russia", "india", "siam"],
     },
     {
       id: "india",
@@ -184,13 +178,6 @@ export const WORLD_MAP_DEFINITION: GameEngineMapDefinition = {
       continentId: "asia",
       neighbors: ["india", "china", "indonesia"],
     },
-    {
-      id: "kamchatka",
-      name: "Kamchatka",
-      continentId: "asia",
-      neighbors: ["siberia"],
-    },
-
     // --- AUSTRALIA ---
     {
       id: "indonesia",

@@ -9,8 +9,7 @@ export const demoMap: GameMap = {
     // --- NORTH AMERICA ---
     { id: "canada", x: 100, y: 100, width: 140, height: 75 },
     { id: "greenland", x: 290, y: 50, width: 120, height: 75 },
-    { id: "western-us", x: 60, y: 190, width: 120, height: 75 },
-    { id: "eastern-us", x: 200, y: 190, width: 120, height: 75 },
+    { id: "usa", x: 70, y: 185, width: 190, height: 80 },
     { id: "central-america", x: 120, y: 285, width: 110, height: 60 },
 
     // --- SOUTH AMERICA ---
@@ -38,11 +37,10 @@ export const demoMap: GameMap = {
     // --- ASIA ---
     { id: "middle-east", x: 730, y: 260, width: 120, height: 85 },
     { id: "ural", x: 840, y: 90, width: 110, height: 75 },
-    { id: "siberia", x: 970, y: 70, width: 110, height: 85 },
+    { id: "russia", x: 970, y: 70, width: 170, height: 95 },
     { id: "china", x: 870, y: 185, width: 130, height: 90 },
     { id: "india", x: 870, y: 295, width: 110, height: 80 },
     { id: "siam", x: 1000, y: 285, width: 90, height: 75 },
-    { id: "kamchatka", x: 1100, y: 130, width: 100, height: 75 },
 
     // --- AUSTRALIA ---
     { id: "indonesia", x: 990, y: 390, width: 110, height: 65 },
