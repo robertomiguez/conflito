@@ -18,6 +18,7 @@ const props = defineProps<{
   map: GameMap;
   selectedTerritoryId: string | null;
   onTerritoryClick: (territoryId: string) => void;
+  onTerritoryDrop?: (territoryId: string, amount: number) => void;
 }>();
 
 const container = ref<HTMLDivElement | null>(null);
@@ -93,6 +94,18 @@ function drawLabels() {
       interactive: true,
     }).addTo(map);
     marker.on("click", () => props.onTerritoryClick(id));
+    marker.on("add", () => {
+      const element = marker.getElement();
+      if (!element) return;
+      element.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+      element.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const amount = Number(event.dataTransfer?.getData("application/x-conflito-reinforcement") ?? "1");
+        props.onTerritoryDrop?.(id, Number.isFinite(amount) && amount > 0 ? amount : 1);
+      });
+    });
     labelLayer.push(marker);
   }
 }
@@ -128,6 +141,18 @@ async function loadMap() {
         mouseover: (event: LeafletMouseEvent) => (event.target as Layer & { setStyle?: (style: object) => void }).setStyle?.({ weight: 2, fillOpacity: id ? 0.9 : 0.3 }),
         mouseout: (event: LeafletMouseEvent) => (event.target as Layer & { setStyle?: (style: object) => void }).setStyle?.(styleFeature(feature as CountryFeature)),
         click: () => id && props.onTerritoryClick(id),
+      });
+      layer.on("add", () => {
+        const element = (layer as Layer & { getElement?: () => SVGElement | null }).getElement?.();
+        if (!element || !id) return;
+        element.addEventListener("dragover", (event) => {
+          event.preventDefault();
+        });
+        element.addEventListener("drop", (event) => {
+          event.preventDefault();
+          const amount = Number(event.dataTransfer?.getData("application/x-conflito-reinforcement") ?? "1");
+          props.onTerritoryDrop?.(id, Number.isFinite(amount) && amount > 0 ? amount : 1);
+        });
       });
     },
   }).addTo(map);
