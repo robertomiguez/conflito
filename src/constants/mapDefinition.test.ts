@@ -35,4 +35,37 @@ describe("WORLD_MAP_DEFINITION", () => {
       }
     }
   });
+
+  it("models France and Spain as separate country territories", () => {
+    const territories = new Map(
+      WORLD_MAP_DEFINITION.territories.map((territory) => [
+        territory.id,
+        territory,
+      ]),
+    );
+
+    expect(territories.get("country-fra")?.name).toBe("France");
+    expect(territories.get("country-esp")?.name).toBe("Spain");
+    expect(territories.get("country-fra")?.neighbors).toContain("country-esp");
+    expect(territories.has("western-europe")).toBe(false);
+  });
+
+  it("uses the requested country count for each playable continent", () => {
+    const counts = WORLD_MAP_DEFINITION.territories.reduce<Record<string, number>>(
+      (result, territory) => ({
+        ...result,
+        [territory.continentId]: (result[territory.continentId] ?? 0) + 1,
+      }),
+      {},
+    );
+
+    expect(counts).toEqual({
+      "south-america": 7,
+      "north-america": 6,
+      europe: 12,
+      africa: 12,
+      asia: 10,
+      australia: 4,
+    });
+  });
 });

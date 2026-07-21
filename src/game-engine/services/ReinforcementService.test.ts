@@ -101,9 +101,9 @@ describe("ReinforcementService", () => {
       },
     });
 
-    // 4 territories -> base 3. Continent bonus +4 -> total 7.
+    // 4 territories -> base 3. South America bonus +3 -> total 6.
     const troops = ReinforcementService.calculate(game, "player-1");
-    expect(troops).toBe(7);
+    expect(troops).toBe(6);
   });
 
   it("should reinforce a territory when valid", () => {

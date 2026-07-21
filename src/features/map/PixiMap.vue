@@ -4,7 +4,7 @@ import L, { type GeoJSON, type LatLngBounds, type Layer, type LeafletMouseEvent,
 import "leaflet/dist/leaflet.css";
 
 import type { GameState } from "../../game-engine/domain/GameState";
-import type { GameMap } from "../../game-engine/maps/GameMap";
+import { COUNTRY_NAME_TO_ID } from "../../constants/countryTerritories";
 import { TerritoryColorService } from "./TerritoryColorService";
 
 interface CountryFeature {
@@ -15,7 +15,6 @@ interface CountryFeature {
 
 const props = defineProps<{
   game: GameState;
-  map: GameMap;
   selectedTerritoryId: string | null;
   onTerritoryClick: (territoryId: string) => void;
   onTerritoryDrop?: (territoryId: string, amount: number) => void;
@@ -27,31 +26,58 @@ let countryLayer: GeoJSON | null = null;
 let labelLayer: Layer[] = [];
 let territoryBounds: Partial<Record<string, LatLngBounds>> = {};
 
-// Visual country boundaries are grouped into the current logical territories.
-const countryToTerritory: Record<string, string> = {
-  Canada: "canada", Greenland: "greenland", "United States of America": "usa",
-  Mexico: "central-america", Guatemala: "central-america", Belize: "central-america",
-  Honduras: "honduras", Nicaragua: "nicaragua",
-  Cuba: "central-america", Colombia: "colombia", Venezuela: "venezuela", Peru: "peru", Bolivia: "bolivia", Brazil: "brazil", Chile: "chile", Argentina: "argentina",
-  Iceland: "iceland", "United Kingdom": "great-britain", Ireland: "great-britain",
-  France: "western-europe", Spain: "western-europe", Portugal: "western-europe", Germany: "northern-europe",
-  Norway: "norway", Sweden: "sweden", Finland: "finland", Poland: "poland",
-  Italy: "southern-europe", Greece: "southern-europe", Ukraine: "ukraine", Egypt: "egypt",
-  Morocco: "north-africa", Algeria: "north-africa", Libya: "north-africa", Mali: "north-africa", Nigeria: "congo", Angola: "angola",
-  "South Africa": "south-africa", Madagascar: "madagascar", Kenya: "east-africa", Tanzania: "east-africa",
-  Turkey: "middle-east", "Saudi Arabia": "middle-east", Iran: "middle-east", Iraq: "middle-east",
-  Kazakhstan: "ural", Russia: "russia", Mongolia: "mongolia", China: "china", Japan: "japan", India: "india", Thailand: "siam",
-  Indonesia: "indonesia", "Papua New Guinea": "new-guinea", Australia: "western-australia",
-};
-
 const territoryLabelPositions: Partial<Record<string, [number, number]>> = {
-  usa: [39, -98],
-  russia: [61, 100],
-  chile: [-30, -71],
-  norway: [62, 10],
-  sweden: [62, 16],
-  finland: [64, 26],
-  poland: [52, 19],
+  "country-ago": [-12, 18],
+  "country-arg": [-38, -64],
+  "country-aus": [-25, 134],
+  "country-bol": [-17, -65],
+  "country-bra": [-10, -55],
+  "country-can": [56, -106],
+  "country-chl": [-35, -71],
+  "country-chn": [35, 103],
+  "country-cod": [-3, 23],
+  "country-col": [4, -72],
+  "country-deu": [51, 10],
+  "country-dza": [28, 2],
+  "country-egy": [27, 30],
+  "country-esp": [40, -4],
+  "country-fin": [64, 26],
+  "country-fra": [46, 2],
+  "country-gbr": [54, -2],
+  "country-grl": [72, -40],
+  "country-gtm": [15, -90],
+  "country-idn": [-2, 118],
+  "country-ind": [22, 79],
+  "country-irn": [32, 53],
+  "country-isl": [65, -19],
+  "country-ita": [42, 12],
+  "country-jpn": [36, 138],
+  "country-kaz": [48, 68],
+  "country-lby": [27, 17],
+  "country-mex": [23, -102],
+  "country-mdg": [-19, 47],
+  "country-mli": [17, -4],
+  "country-mng": [46, 104],
+  "country-ner": [17, 9],
+  "country-nic": [13, -85],
+  "country-nor": [64, 11],
+  "country-nzl": [-41, 174],
+  "country-per": [-10, -75],
+  "country-png": [-6, 147],
+  "country-pol": [52, 19],
+  "country-usa": [39, -98],
+  "country-rus": [61, 100],
+  "country-sau": [24, 45],
+  "country-sdn": [15, 30],
+  "country-slb": [-9, 160],
+  "country-kor": [36, 128],
+  "country-nga": [9, 8],
+  "country-swe": [62, 15],
+  "country-tcd": [15, 19],
+  "country-tur": [39, 35],
+  "country-ukr": [49, 32],
+  "country-ven": [7, -66],
+  "country-zaf": [-30, 25],
 };
 
 function territoryColor(id: string | undefined): string {
@@ -62,7 +88,7 @@ function territoryColor(id: string | undefined): string {
 }
 
 function styleFeature(feature?: CountryFeature) {
-  const id = feature?.properties?.name ? countryToTerritory[feature.properties.name] : undefined;
+  const id = feature?.properties?.name ? COUNTRY_NAME_TO_ID[feature.properties.name] : undefined;
   const selected = id === props.selectedTerritoryId;
   return {
     color: selected ? "#fbbf24" : "#94a3b8",
@@ -114,7 +140,7 @@ function refreshTooltips() {
   countryLayer?.eachLayer((layer) => {
     const feature = (layer as Layer & { feature?: CountryFeature }).feature;
     const countryName = feature?.properties?.name ?? "Unknown country";
-    const id = countryToTerritory[countryName];
+    const id = COUNTRY_NAME_TO_ID[countryName];
     layer.bindTooltip(tooltipContent(countryName, id), { sticky: true });
   });
 }
@@ -128,7 +154,7 @@ async function loadMap() {
     style: (feature: unknown) => styleFeature(feature as CountryFeature),
     onEachFeature: (feature: { properties?: unknown }, layer: Layer) => {
       const countryName = (feature.properties as { name?: string })?.name ?? "Unknown country";
-      const id = countryToTerritory[countryName];
+      const id = COUNTRY_NAME_TO_ID[countryName];
       const boundedLayer = layer as Layer & { getBounds?: () => LatLngBounds };
       const bounds = boundedLayer.getBounds?.();
       if (id && bounds) {
