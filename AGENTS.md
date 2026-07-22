@@ -231,6 +231,17 @@ The result must always be identical.
 
 ---
 
+## Map Balance
+
+Whenever countries or territories are added, removed, split, or merged:
+
+- Recalculate continent bonuses in `src/game-engine/constants/continents.ts`
+- Verify starting territory distribution remains balanced for supported player counts
+- Update relevant tests for reinforcement bonuses and initial ownership distribution
+- Keep neighbor relationships symmetric unless a rule explicitly requires one-way movement
+
+---
+
 ## Pure Game Rules
 
 Game engine functions should be pure.

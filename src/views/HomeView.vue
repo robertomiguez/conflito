@@ -10,22 +10,16 @@ import { FortificationService } from "../game-engine/services/FortificationServi
 import { PhaseService } from "../game-engine/services/PhaseService";
 import { VictoryService } from "../game-engine/services/VictoryService";
 import { TerritoryPathService } from "../game-engine/services/TerritoryPathService";
-import { demoMap } from "../game-engine/maps/demoMap";
-import { frontierMap } from "../game-engine/maps/frontierMap";
-import type { GameMap } from "../game-engine/maps/GameMap";
 import type { BattleResult } from "../game-engine/types/BattleResult";
 
 import PixiMap from "../features/map/PixiMap.vue";
 
 // ─── Game State ────────────────────────────────────────────────────
 const game = ref(createGameState(WORLD_MAP_DEFINITION, demoPlayers));
-const maps: GameMap[] = [demoMap, frontierMap];
-const selectedMapId = ref(demoMap.id ?? "world-grid");
-const selectedMap = computed(() => maps.find((map) => map.id === selectedMapId.value) ?? demoMap);
 
 // ─── UI State ──────────────────────────────────────────────────────
 const selectedTerritoryId = ref<string | null>(null);
-const reinforceAmount = ref(1);
+const selectedReinforcementPieces = ref<number[]>([]);
 const fortifyAmount = ref(1);
 const attackerDice = ref(1);
 const troopsToMoveOnCapture = ref(1);
@@ -53,6 +47,10 @@ const selectedTerritoryName = computed(() => {
 });
 
 const reinforcementsLeft = computed(() => game.value.reinforcementsLeft);
+const reinforcementPieces = computed(() =>
+  Array.from({ length: reinforcementsLeft.value }, (_, index) => index + 1),
+);
+const selectedReinforcementAmount = computed(() => selectedReinforcementPieces.value.length);
 
 // For attack phase: is the selected territory an owned attacker?
 const isAttackSource = computed(() => {
@@ -197,10 +195,9 @@ function doAttack(fromId: string, toId: string) {
   selectedTerritoryId.value = null;
 }
 
-function doReinforce(territoryId: string) {
+function doReinforce(territoryId: string, amount = 1) {
   if (isGameOver.value) return;
 
-  const amount = reinforceAmount.value;
   const result = ReinforcementService.reinforce(
     game.value,
     game.value.currentPlayerId,
@@ -213,9 +210,55 @@ function doReinforce(territoryId: string) {
     return;
   }
 
-  game.value = result.game;
-  reinforceAmount.value = 1;
-  actionMessage.value = `✓ Placed ${amount} troop${amount !== 1 ? "s" : ""}.`;
+  const reinforcedGame = result.game;
+  if (reinforcedGame.reinforcementsLeft === 0) {
+    const phaseResult = PhaseService.next(
+      reinforcedGame,
+      reinforcedGame.currentPlayerId,
+    );
+
+    if (!phaseResult.success || !phaseResult.game) {
+      actionMessage.value = `⚠ ${phaseResult.error?.replace(/_/g, " ")}`;
+      game.value = reinforcedGame;
+      return;
+    }
+
+    game.value = phaseResult.game;
+    actionMessage.value = `✓ Placed ${amount} troop${amount !== 1 ? "s" : ""}. Attack phase started.`;
+  } else {
+    game.value = reinforcedGame;
+    actionMessage.value = `✓ Placed ${amount} troop${amount !== 1 ? "s" : ""}.`;
+  }
+
+  selectedReinforcementPieces.value = [];
+}
+
+function toggleReinforcementPiece(pieceIndex: number) {
+  if (isGameOver.value || reinforcementsLeft.value === 0) return;
+  const current = selectedReinforcementPieces.value;
+  if (current.includes(pieceIndex)) {
+    selectedReinforcementPieces.value = current.filter((piece) => piece !== pieceIndex);
+    return;
+  }
+  selectedReinforcementPieces.value = [...current, pieceIndex].sort((a, b) => a - b);
+}
+
+function handleReinforcementDragStart(event: DragEvent, amount: number) {
+  event.dataTransfer?.setData("application/x-conflito-reinforcement", String(amount));
+  event.dataTransfer?.setData("text/plain", String(amount));
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "copy";
+  }
+}
+
+function getReinforcementDragAmount(pieceIndex: number) {
+  return selectedReinforcementPieces.value.includes(pieceIndex)
+    ? Math.max(1, selectedReinforcementAmount.value)
+    : 1;
+}
+
+function handleReinforcementDrop(territoryId: string, amount: number) {
+  doReinforce(territoryId, amount);
 }
 
 function doFortify(toId: string) {
@@ -256,17 +299,13 @@ function nextPhase() {
 function newGame() {
   game.value = createGameState(WORLD_MAP_DEFINITION, demoPlayers);
   selectedTerritoryId.value = null;
+  selectedReinforcementPieces.value = [];
   lastBattle.value = null;
   lastTerritoryCaptured.value = false;
   actionMessage.value = null;
-  reinforceAmount.value = 1;
   fortifyAmount.value = 1;
   attackerDice.value = 1;
   troopsToMoveOnCapture.value = 1;
-}
-
-function selectMap(mapId: string) {
-  selectedMapId.value = mapId;
 }
 
 function getPlayerColor(playerId: string | null): string {
@@ -307,23 +346,18 @@ function getPlayerName(playerId: string | null): string {
     <main class="game-main">
       <!-- Map Panel -->
       <section class="map-panel">
-        <div class="map-picker" aria-label="Choose a map">
+        <div class="map-picker" aria-label="Map type">
           <div class="map-picker-copy">
             <span class="map-picker-kicker">Battlefield</span>
-            <strong>{{ selectedMap.name }}</strong>
-            <span>{{ selectedMap.description }}</span>
-          </div>
-          <div class="map-picker-options">
-            <button v-for="map in maps" :key="map.id" class="map-option" :class="{ active: map.id === selectedMapId }" @click="selectMap(map.id!)">
-              <span class="map-option-mark"></span>{{ map.name }}
-            </button>
+            <strong>World Countries</strong>
+            <span>One territory per country</span>
           </div>
         </div>
         <PixiMap
           :game="game"
-          :map="selectedMap"
           :selected-territory-id="selectedTerritoryId"
           :on-territory-click="handleTerritoryClick"
+          :on-territory-drop="handleReinforcementDrop"
         />
         <p v-if="actionMessage" class="action-toast" :class="{ captured: lastTerritoryCaptured }">
           {{ actionMessage }}
@@ -365,12 +399,44 @@ function getPlayerName(playerId: string | null): string {
           </div>
         </div>
 
+        <!-- Reinforcement Pieces -->
+        <div v-if="game.phase === 'reinforcement'" class="card reinforcement-card">
+          <div class="panel-label">Place Reinforcements</div>
+          <p class="hint-text reinforce-hint">
+            Select one or more troop pieces, then drag the stack onto any country you own.
+          </p>
+          <div class="reinforcement-tray" :class="{ empty: reinforcementsLeft === 0 }">
+            <button
+              v-for="piece in reinforcementPieces"
+              :key="piece"
+              class="reinforcement-piece"
+              :class="{ selected: selectedReinforcementPieces.includes(piece) }"
+              :disabled="reinforcementsLeft === 0"
+              draggable="true"
+              @click="toggleReinforcementPiece(piece)"
+              @dragstart="handleReinforcementDragStart($event, getReinforcementDragAmount(piece))"
+              :title="selectedReinforcementPieces.includes(piece) ? `Drag ${selectedReinforcementAmount} selected troop${selectedReinforcementAmount !== 1 ? 's' : ''}` : `Drag 1 troop or click to select`"
+            >
+              <span class="piece-ring"></span>
+              <span class="piece-value">1</span>
+            </button>
+          </div>
+          <div class="reinforcement-summary text-muted">
+            <template v-if="selectedReinforcementAmount > 0">
+              Selected: <strong>{{ selectedReinforcementAmount }}</strong> troop{{ selectedReinforcementAmount !== 1 ? "s" : "" }}
+            </template>
+            <template v-else>
+              No stack selected. Drag any single piece to place 1 troop.
+            </template>
+          </div>
+        </div>
+
         <!-- Context Panel -->
         <div class="card context-card">
           <!-- No selection -->
           <template v-if="!selectedTerritoryId">
             <p class="hint-text">
-              <span v-if="game.phase === 'reinforcement'">🔵 Click an owned territory to place troops.</span>
+              <span v-if="game.phase === 'reinforcement'">🔵 Drag troop pieces onto countries you own.</span>
               <span v-else-if="game.phase === 'attack'">🔴 Click an owned territory to attack from.</span>
               <span v-else>🟢 Click an owned territory to move troops from.</span>
             </p>
@@ -389,29 +455,10 @@ function getPlayerName(playerId: string | null): string {
             </div>
             <div class="divider"></div>
 
-            <!-- REINFORCEMENT PANEL -->
-            <template v-if="game.phase === 'reinforcement' && selectedTerritory?.ownerId === game.currentPlayerId">
-              <div class="panel-label">Place Reinforcements</div>
-              <div class="num-input" style="margin: 10px 0;">
-                <input
-                  id="reinforce-slider"
-                  type="range"
-                  min="1"
-                  :max="reinforcementsLeft"
-                  v-model.number="reinforceAmount"
-                  :disabled="reinforcementsLeft === 0"
-                />
-                <span class="val">{{ reinforceAmount }}</span>
-              </div>
-              <button
-                id="btn-reinforce"
-                class="btn btn-primary"
-                style="width:100%;"
-                :disabled="reinforcementsLeft === 0"
-                @click="doReinforce(selectedTerritoryId!)"
-              >
-                + Place {{ reinforceAmount }} Troop{{ reinforceAmount !== 1 ? 's' : '' }}
-              </button>
+            <template v-if="game.phase === 'reinforcement'">
+              <p class="hint-text">
+                Drop selected reinforcement pieces onto this country or any other country you own.
+              </p>
             </template>
 
             <!-- ATTACK PANEL -->
@@ -526,12 +573,9 @@ function getPlayerName(playerId: string | null): string {
         </div>
 
         <!-- Phase Controls -->
-        <div class="card phase-controls">
+        <div v-if="game.phase !== 'reinforcement'" class="card phase-controls">
           <div class="phase-hint text-muted">
-            <template v-if="game.phase === 'reinforcement'">
-              Place all {{ reinforcementsLeft }} remaining troops to advance.
-            </template>
-            <template v-else-if="game.phase === 'attack'">
+            <template v-if="game.phase === 'attack'">
               Attack as much as you want, then proceed.
             </template>
             <template v-else>
@@ -709,50 +753,8 @@ function getPlayerName(playerId: string | null): string {
   text-transform: uppercase;
 }
 
-.map-picker-options {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.map-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-secondary);
-  font: 600 11px var(--font-sans);
-  cursor: pointer;
-  transition: all 0.18s var(--ease);
-}
-
-.map-option:hover,
-.map-option.active {
-  border-color: rgba(56, 189, 248, 0.55);
-  background: var(--accent-blue-bg);
-  color: var(--accent-blue);
-}
-
-.map-option-mark {
-  width: 7px;
-  height: 7px;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-}
-
-.map-option.active .map-option-mark {
-  background: currentColor;
-  box-shadow: 0 0 8px currentColor;
-}
-
 @media (max-width: 720px) {
-  .map-picker {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+  .map-picker { align-items: flex-start; }
 }
 
 .action-toast {
@@ -923,6 +925,94 @@ function getPlayerName(playerId: string | null): string {
   color: var(--text-muted);
   display: flex;
   align-items: center;
+}
+
+.reinforce-hint {
+  margin-top: 6px;
+}
+
+.reinforcement-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px dashed rgba(56, 189, 248, 0.28);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 60%),
+    rgba(6, 11, 20, 0.3);
+}
+
+.reinforcement-tray.empty {
+  opacity: 0.55;
+}
+
+.reinforcement-piece {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(226, 232, 240, 0.22);
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.22), transparent 35%),
+    radial-gradient(circle at 50% 55%, rgba(56, 189, 248, 0.35), rgba(6, 11, 20, 0.92) 72%);
+  color: #e2f3ff;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.16),
+    0 8px 18px rgba(0, 0, 0, 0.38);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: grab;
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+
+.reinforcement-piece:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.2),
+    0 10px 22px rgba(0, 0, 0, 0.46);
+}
+
+.reinforcement-piece.selected {
+  border-color: rgba(251, 191, 36, 0.65);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.2),
+    0 0 0 3px rgba(251, 191, 36, 0.18),
+    0 10px 22px rgba(0, 0, 0, 0.46);
+  transform: translateY(-1px);
+}
+
+.reinforcement-piece:active:not(:disabled) {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.reinforcement-piece:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.piece-ring {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.piece-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+.reinforcement-summary {
+  margin-top: 4px;
+  font-size: 12px;
 }
 
 .neighbor-list {

@@ -5,25 +5,63 @@ import { TurnPhase } from "../types";
 import { ReinforcementService } from "../services/ReinforcementService";
 import { RandomService } from "../services/RandomService";
 
+function createRandomSeed(): number {
+  const values = new Uint32Array(1);
+  crypto.getRandomValues(values);
+  return values[0] || 1;
+}
+
+function shuffle<T>(items: T[], random: RandomService): T[] {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random.next() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export const createGameState = (
   map: MapDefinition,
   players: Player[],
-  seed = 12345,
+  seed = createRandomSeed(),
 ): GameState => {
   const random = new RandomService(seed);
-  const shuffledTerritories = [...map.territories];
+  const territoriesByContinent = new Map<string, typeof map.territories>();
+  for (const territory of map.territories) {
+    const continentId = territory.continentId ?? "__unassigned__";
+    const territories = territoriesByContinent.get(continentId) ?? [];
+    territories.push(territory);
+    territoriesByContinent.set(continentId, territories);
+  }
 
-  for (let i = shuffledTerritories.length - 1; i > 0; i--) {
-    const j = Math.floor(random.next() * (i + 1));
-    [shuffledTerritories[i], shuffledTerritories[j]] = [
-      shuffledTerritories[j],
-      shuffledTerritories[i],
-    ];
+  const ownerCounts = new Map(players.map((player) => [player.id, 0]));
+  const territoryOwners = new Map<string, Player>();
+
+  for (const continentId of shuffle(
+    Array.from(territoriesByContinent.keys()),
+    random,
+  )) {
+    const shuffledTerritories = shuffle(
+      territoriesByContinent.get(continentId) ?? [],
+      random,
+    );
+    const playerOrder = shuffle(players, random).sort(
+      (a, b) => (ownerCounts.get(a.id) ?? 0) - (ownerCounts.get(b.id) ?? 0),
+    );
+
+    for (const [index, territory] of shuffledTerritories.entries()) {
+      const owner = playerOrder[index % playerOrder.length];
+      territoryOwners.set(territory.id, owner);
+      ownerCounts.set(owner.id, (ownerCounts.get(owner.id) ?? 0) + 1);
+    }
   }
 
   const territories = Object.fromEntries(
-    shuffledTerritories.map((territory, index) => {
-      const owner = players[index % players.length];
+    map.territories.map((territory) => {
+      const owner = territoryOwners.get(territory.id);
+      if (!owner) {
+        throw new Error(`No owner assigned for territory ${territory.id}`);
+      }
 
       return [
         territory.id,

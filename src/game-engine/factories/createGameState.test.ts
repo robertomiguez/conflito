@@ -30,6 +30,39 @@ describe("createGameState", () => {
     }
   });
 
+  it("should distribute starting territories evenly between two players", () => {
+    const game = createGameState(WORLD_MAP_DEFINITION, demoPlayers, 42);
+    const territoryCounts = demoPlayers.map(
+      (player) =>
+        Object.values(game.territories).filter(
+          (territory) => territory.ownerId === player.id,
+        ).length,
+    );
+
+    expect(
+      Math.max(...territoryCounts) - Math.min(...territoryCounts),
+    ).toBeLessThanOrEqual(1);
+  });
+
+  it("should avoid assigning any multi-territory continent to one player at start", () => {
+    const game = createGameState(WORLD_MAP_DEFINITION, demoPlayers, 42);
+    const continentIds = new Set(
+      WORLD_MAP_DEFINITION.territories.map((territory) => territory.continentId),
+    );
+
+    for (const continentId of continentIds) {
+      const continentTerritories = Object.values(game.territories).filter(
+        (territory) => territory.continentId === continentId,
+      );
+      if (continentTerritories.length <= 1) continue;
+
+      const owners = new Set(
+        continentTerritories.map((territory) => territory.ownerId),
+      );
+      expect(owners.size).toBeGreaterThan(1);
+    }
+  });
+
   it("should start in reinforcement phase for the first player", () => {
     const game = createGameState(WORLD_MAP_DEFINITION, demoPlayers);
 

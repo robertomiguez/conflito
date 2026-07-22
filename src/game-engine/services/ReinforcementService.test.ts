@@ -73,7 +73,7 @@ describe("ReinforcementService", () => {
   });
 
   it("should apply continent bonuses correctly", () => {
-    // South America has 4 territories: venezuela, peru, brazil, argentina (+2 bonus)
+    // South America uses the current adjusted continent bonus (+4).
     const game = createMockGame({
       venezuela: {
         ownerId: "player-1",
@@ -101,9 +101,9 @@ describe("ReinforcementService", () => {
       },
     });
 
-    // 4 territories -> base 3. Continent bonus +2 -> total 5.
+    // 4 territories -> base 3. South America bonus +3 -> total 6.
     const troops = ReinforcementService.calculate(game, "player-1");
-    expect(troops).toBe(5);
+    expect(troops).toBe(6);
   });
 
   it("should reinforce a territory when valid", () => {
